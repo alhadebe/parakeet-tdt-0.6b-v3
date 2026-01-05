@@ -69,15 +69,37 @@ The metric used is **Speedup Factor** (Audio Duration / Processing Time). Higher
 
 ## Requirements
 
-*   Python 3.10 or greater
-*   [FFmpeg](https://ffmpeg.org/) (Required for audio processing)
+*   [Docker](https://docs.docker.com/get-docker/) (Recommended)
+*   Or: Python 3.10+ and [FFmpeg](https://ffmpeg.org/)
 
 ### CPU Optimization
 For hybrid CPUs (like Intel 12th-14th Gen), performance is significantly improved by pinning the process to Performance cores (P-cores).
 
 ## Installation
 
-The recommended way to install is via Conda to manage dependencies and Python version cleanly.
+### 🐳 Docker (Recommended)
+
+The easiest way to get started. No dependencies to install!
+
+**CPU Deployment:**
+```bash
+git clone https://github.com/groxaxo/parakeet-tdt-0.6b-v3-fastapi-openai
+cd parakeet-tdt-0.6b-v3-fastapi-openai
+docker compose up parakeet-cpu -d
+```
+
+**GPU Deployment** (requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)):
+```bash
+docker compose up parakeet-gpu -d
+```
+
+The server will be available at `http://localhost:5092`. See [DOCKER.md](DOCKER.md) for more options.
+
+---
+
+### Conda (Alternative)
+
+For development or customization:
 
 ```bash
 conda create -n parakeet-onnx python=3.10

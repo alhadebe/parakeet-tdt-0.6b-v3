@@ -1,7 +1,7 @@
 host = "0.0.0.0"
 port = 5092
 threads = 8  # Optimized for 8 P-cores
-CHUNK_MINITE = 1  # 1-minute chunks for real-time streaming
+CHUNK_MINITE = 5  # 5-minute chunks for real-time streaming
 
 import sys
 
