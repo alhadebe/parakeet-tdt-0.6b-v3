@@ -36,12 +36,34 @@ if sys.platform == "win32":
     os.environ["PATH"] = ROOT_DIR + f";{ROOT_DIR}/ffmpeg;" + os.environ["PATH"]
 
 
-try:
-    print("\nLoading Parakeet TDT 0.6B V3 ONNX model with INT8 quantization...")
-    import onnx_asr
+# Model configurations for different precision variants
+MODEL_CONFIGS = {
+    "parakeet-tdt-0.6b-v3": {
+        "hf_id": "nemo-parakeet-tdt-0.6b-v3",
+        "quantization": "int8",
+        "description": "INT8 (fastest)"
+    },
+    "istupakov/parakeet-tdt-0.6b-v3-onnx": {
+        "hf_id": "istupakov/parakeet-tdt-0.6b-v3-onnx",
+        "quantization": None,
+        "description": "FP32"
+    },
+    "grikdotnet/parakeet-tdt-0.6b-fp16": {
+        "hf_id": "grikdotnet/parakeet-tdt-0.6b-fp16",
+        "quantization": "fp16",
+        "description": "FP16"
+    },
+}
 
+# Model cache for lazy loading
+model_cache = {}
+
+try:
+    print("\nInitializing ONNX Runtime...")
+    import onnx_asr
     import onnxruntime as ort
-    # Try GPU providers first
+    
+    # Detect available providers
     available_providers = ort.get_available_providers()
     print(f"Available providers: {available_providers}")
     
@@ -55,21 +77,9 @@ try:
     
     print(f"Using providers: {providers_to_try}")
 
-    # Configure session options
-    sess_options = ort.SessionOptions()
-    if "CPUExecutionProvider" in providers_to_try[0]:
-        sess_options.intra_op_num_threads = 8
-        sess_options.inter_op_num_threads = 1
+    # Load default INT8 model at startup
+    print("\nLoading default Parakeet TDT 0.6B V3 ONNX model with INT8 quantization...")
     
-    asr_model = onnx_asr.load_model(
-        "nemo-parakeet-tdt-0.6b-v3",
-        quantization="int8",
-        providers=providers_to_try,
-        sess_options=sess_options,
-    ).with_timestamps()
-
-    print(f"Available providers: {ort.get_available_providers()}")
-
     # Configure session options for optimal CPU performance
     sess_options = ort.SessionOptions()
     sess_options.intra_op_num_threads = 4  # Match Waitress threads
@@ -77,21 +87,88 @@ try:
     sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
 
+    default_config = MODEL_CONFIGS["parakeet-tdt-0.6b-v3"]
     asr_model = onnx_asr.load_model(
-        "nemo-parakeet-tdt-0.6b-v3",
-        quantization="int8",
-        providers=["CPUExecutionProvider"],
+        default_config["hf_id"],
+        quantization=default_config["quantization"],
+        providers=providers_to_try,
         sess_options=sess_options,
     ).with_timestamps()
-    print("Model loaded successfully with CPU optimization (10.6x real-time speedup)!")
+    
+    # Cache the default model
+    model_cache["parakeet-tdt-0.6b-v3"] = asr_model
+    
+    print("Default model loaded successfully with CPU optimization!")
 except Exception as e:
     print(f"❌ Model loading failed: {e}")
     import traceback
-
     traceback.print_exc()
     sys.exit()
 
 print("=" * 50)
+
+
+def get_model(model_name):
+    """
+    Get or load a model by name with lazy loading and caching.
+    
+    Args:
+        model_name: Name of the model (key in MODEL_CONFIGS)
+        
+    Returns:
+        Loaded ASR model instance
+    """
+    # Default to INT8 if model not found
+    if model_name not in MODEL_CONFIGS:
+        print(f"Unknown model '{model_name}', falling back to default INT8 model")
+        model_name = "parakeet-tdt-0.6b-v3"
+    
+    # Return cached model if available
+    if model_name in model_cache:
+        print(f"Using cached model: {model_name}")
+        return model_cache[model_name]
+    
+    # Load new model
+    print(f"Loading model: {model_name}")
+    config = MODEL_CONFIGS[model_name]
+    
+    try:
+        import onnxruntime as ort
+        
+        # Reuse providers from startup
+        available_providers = ort.get_available_providers()
+        providers_to_try = []
+        if "TensorrtExecutionProvider" in available_providers:
+            providers_to_try.append("TensorrtExecutionProvider")
+        if "CUDAExecutionProvider" in available_providers:
+            providers_to_try.append("CUDAExecutionProvider")
+        providers_to_try.append("CPUExecutionProvider")
+        
+        # Configure session options
+        sess_options = ort.SessionOptions()
+        sess_options.intra_op_num_threads = 4
+        sess_options.inter_op_num_threads = 1
+        sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        
+        model = onnx_asr.load_model(
+            config["hf_id"],
+            quantization=config["quantization"],
+            providers=providers_to_try,
+            sess_options=sess_options,
+        ).with_timestamps()
+        
+        # Cache the loaded model
+        model_cache[model_name] = model
+        print(f"Model {model_name} loaded successfully")
+        
+        return model
+    except Exception as e:
+        print(f"Failed to load model {model_name}: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback to default cached model
+        return model_cache.get("parakeet-tdt-0.6b-v3", asr_model)
 
 
 app = Flask(__name__)
@@ -313,9 +390,13 @@ def serve_logo():
 
 @app.route("/health")
 def health():
-    return jsonify(
-        {"status": "healthy", "model": "parakeet-tdt-0.6b-v3", "speedup": "20.7x"}
-    )
+    available_models = list(MODEL_CONFIGS.keys())
+    return jsonify({
+        "status": "healthy",
+        "models": available_models,
+        "default_model": "parakeet-tdt-0.6b-v3",
+        "speedup": "20.7x"
+    })
 
 
 @app.route("/docs")
@@ -354,8 +435,9 @@ def openapi_spec():
                                         },
                                         "model": {
                                             "type": "string",
-                                            "default": "whisper-1",
-                                            "description": "ID of the model to use."
+                                            "default": "parakeet-tdt-0.6b-v3",
+                                            "enum": ["parakeet-tdt-0.6b-v3", "istupakov/parakeet-tdt-0.6b-v3-onnx", "grikdotnet/parakeet-tdt-0.6b-fp16"],
+                                            "description": "Model variant to use: parakeet-tdt-0.6b-v3 (INT8, fastest), istupakov/parakeet-tdt-0.6b-v3-onnx (FP32), or grikdotnet/parakeet-tdt-0.6b-fp16 (FP16)"
                                         },
                                         "response_format": {
                                             "type": "string",
@@ -432,10 +514,13 @@ def transcribe_audio():
         return jsonify({"error": "No file selected"}), 400
 
     # OpenAI compatible parameters
-    model_name = request.form.get("model", "whisper-1").lower()
+    model_name = request.form.get("model", "parakeet-tdt-0.6b-v3").lower()
     response_format = request.form.get("response_format", "json")
 
     print(f"Request Model: {model_name} | Format: {response_format}")
+    
+    # Get the appropriate model (with lazy loading)
+    model_to_use = get_model(model_name)
 
     # Legacy support
     if model_name == "parakeet_srt_words":
@@ -594,7 +679,7 @@ def transcribe_audio():
             })
             print(f"[{unique_id}] Transcribing chunk {i + 1}/{num_chunks}...")
 
-            result = asr_model.recognize(chunk_path)
+            result = model_to_use.recognize(chunk_path)
 
             if result and result.text:
                 start_time = result.timestamps[0] if result.timestamps else 0
