@@ -321,6 +321,30 @@
             cursor: not-allowed;
         }
 
+        /* Model Selector */
+        .model-select {
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .model-select:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-cyan);
+        }
+
+        .model-select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+        }
+
         /* Result Section */
         .result-section {
             background: var(--bg-card);
@@ -612,6 +636,11 @@
         </div>
 
         <div class="controls">
+            <select id="modelSelect" class="model-select">
+                <option value="parakeet-tdt-0.6b-v3">INT8 (fastest)</option>
+                <option value="istupakov/parakeet-tdt-0.6b-v3-onnx">FP32</option>
+                <option value="grikdotnet/parakeet-tdt-0.6b-fp16">FP16</option>
+            </select>
             <button class="btn btn-primary" id="uploadBtn" disabled>
                 <span>🚀</span> Execute Transcription
             </button>
@@ -639,7 +668,7 @@
         </div>
 
         <footer>
-            <p>NVIDIA Parakeet TDT 0.6B V3 • ONNX INT8 Optimized</p>
+            <p>NVIDIA Parakeet TDT 0.6B V3 • Multi-Precision ONNX (INT8/FP16/FP32)</p>
             <p style="margin-top: 5px;"><a href="#"
                     style="color: var(--accent-cyan); text-decoration: none;">Documentation</a> • <a
                     href="https://github.com/jianchang512/parakeet-api" target="_blank"
@@ -699,6 +728,10 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('response_format', 'verbose_json');
+                
+                // Add selected model to form data
+                const modelSelect = document.getElementById('modelSelect');
+                formData.append('model', modelSelect.value);
 
                 // Start progress and metrics polling BEFORE the request
                 const progressInterval = setInterval(async () => {

@@ -112,7 +112,7 @@ client = OpenAI(
 
 audio_file = open("audio.mp3", "rb")
 transcript = client.audio.transcriptions.create(
-  model="parakeet-tdt-0.6b-v3",
+  model="parakeet-tdt-0.6b-v3",  # or "istupakov/parakeet-tdt-0.6b-v3-onnx" or "grikdotnet/parakeet-tdt-0.6b-fp16"
   file=audio_file,
   response_format="text"
 )
@@ -120,10 +120,33 @@ transcript = client.audio.transcriptions.create(
 print(transcript)
 ```
 
+### Model Selection
+
+The API supports multiple model variants with different precision levels:
+
+| Model Name | Precision | Speed | Description |
+|------------|-----------|-------|-------------|
+| `parakeet-tdt-0.6b-v3` | INT8 | Fastest | Default model with 8-bit quantization (recommended) |
+| `istupakov/parakeet-tdt-0.6b-v3-onnx` | FP32 | Slower | Full precision for maximum accuracy |
+| `grikdotnet/parakeet-tdt-0.6b-fp16` | FP16 | Medium | Half precision, balanced speed and accuracy |
+
+Models are lazy-loaded on first use and cached for subsequent requests. The default INT8 model is pre-loaded at startup.
+
+**To select a model via API:**
+```python
+transcript = client.audio.transcriptions.create(
+  model="grikdotnet/parakeet-tdt-0.6b-fp16",  # Select FP16 model
+  file=audio_file,
+  response_format="text"
+)
+```
+
 ### Web Interface
 
 The server includes a built-in web interface for testing and easy drag-and-drop transcription.
 Access it at: **[http://127.0.0.1:5092](http://127.0.0.1:5092)**
+
+The web interface includes a dropdown menu to select between INT8, FP16, and FP32 model variants.
 
 ## 🔌 Open WebUI Integration
 
