@@ -17,6 +17,29 @@ Simply send audio in any of these languages, and the model will automatically de
 
 ## Benchmark
 
+### LibriSpeech test-clean (Verified Ground Truth) ⭐
+
+Benchmarked on **LibriSpeech test-clean** dataset with professionally verified human transcriptions. This provides reliable, reproducible accuracy metrics.
+
+**Test Environment:** CPU-only inference, 50 samples (~350 seconds of audio)
+
+| Model | Precision | Accuracy | WER | CER | Speedup (RTF) |
+|-------|-----------|----------|-----|-----|---------------|
+| **Parakeet TDT 0.6B v3** | INT8 | **97.84%** | 2.16% | 0.56% | **18.41x** (0.054) |
+| **Parakeet TDT 0.6B v3** | FP16 | **97.84%** | 2.16% | 0.56% | **18.82x** (0.053) |
+| **Parakeet TDT 0.6B v3** | FP32 | **97.84%** | 2.16% | 0.56% | **19.42x** (0.052) |
+| Whisper Large v3* | FP16 | ~95-96% | ~4-5% | ~2-3% | varies |
+
+> *Whisper Large v3 benchmarks from published literature on LibriSpeech test-clean. Actual results vary by implementation and hardware.
+
+**Key Findings:**
+- All Parakeet precision variants achieve **identical accuracy** (97.84%)
+- INT8 quantization has **zero accuracy loss** vs FP32
+- Real-time factor (RTF) of ~0.05 means 20x faster than real-time
+- Competitive with Whisper Large v3 accuracy with significantly faster CPU inference
+
+---
+
 ### Parakeet TDT vs Faster Whisper
 
 We compare the performance of **Parakeet TDT (CPU)** against **faster-whisper (GPU & CPU)**.
@@ -42,6 +65,23 @@ The metric used is **Speedup Factor** (Audio Duration / Processing Time). Higher
 | **Average Speedup** | **29.7x** |
 | **Real Time Factor (RTF)** | **0.033** |
 | **Max Speedup** | **~30x** |
+
+### Extended Multilingual Benchmark (YouTube Samples)
+
+Additional benchmark on real-world YouTube content across multiple languages:
+
+| Language | Model Variant | Latency (s) | Speedup (RTF) | WER | CER |
+| --- | --- | ---: | ---: | ---: | ---: |
+| English | INT8 (`parakeet-tdt-0.6b-v3`) | 70.60 | 20.32x (0.049) | 5.13% | 2.35% |
+| English | FP16 (`grikdotnet/parakeet-tdt-0.6b-fp16`) | 135.43 | 10.59x (0.094) | 5.48% | 2.83% |
+| English | FP32 (`istupakov/parakeet-tdt-0.6b-v3-onnx`) | 112.80 | 12.72x (0.079) | 5.53% | 2.85% |
+| English | Whisper-Large-v3 (DeepInfra) | 53.45 | 26.84x (0.037) | 4.25% | 3.91% |
+| Spanish | INT8 (`parakeet-tdt-0.6b-v3`) | 29.92 | 18.64x (0.054) | 19.45% | 13.79% |
+| Spanish | FP16 (`grikdotnet/parakeet-tdt-0.6b-fp16`) | 48.52 | 11.49x (0.087) | 15.31% | 11.33% |
+| Spanish | FP32 (`istupakov/parakeet-tdt-0.6b-v3-onnx`) | 38.99 | 14.30x (0.070) | 15.31% | 11.33% |
+| Spanish | Whisper-Large-v3 (DeepInfra) | 15.79 | 35.30x (0.028) | 20.70% | 18.05% |
+
+> ⚠️ **Note:** YouTube subtitle references may contain errors. For verified accuracy, see LibriSpeech benchmark above.
 
 ## Requirements
 
