@@ -69,8 +69,8 @@ try:
     
     # Priority: Tensorrt, CUDA, CPU
     providers_to_try = []
-    if "TensorrtExecutionProvider" in available_providers:
-        providers_to_try.append("TensorrtExecutionProvider")
+    # if "TensorrtExecutionProvider" in available_providers:
+    #     providers_to_try.append("TensorrtExecutionProvider")
     if "CUDAExecutionProvider" in available_providers:
         providers_to_try.append("CUDAExecutionProvider")
     providers_to_try.append("CPUExecutionProvider")
@@ -138,8 +138,8 @@ def get_model(model_name):
         # Reuse providers from startup
         available_providers = ort.get_available_providers()
         providers_to_try = []
-        if "TensorrtExecutionProvider" in available_providers:
-            providers_to_try.append("TensorrtExecutionProvider")
+        # if "TensorrtExecutionProvider" in available_providers:
+        #     providers_to_try.append("TensorrtExecutionProvider")
         if "CUDAExecutionProvider" in available_providers:
             providers_to_try.append("CUDAExecutionProvider")
         providers_to_try.append("CPUExecutionProvider")
