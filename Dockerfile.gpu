@@ -37,7 +37,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     typing_extensions>=4.0.0 \
     psutil>=5.0.0 \
     requests>=2.0.0 \
-    onnxruntime-gpu>=1.18.1 \
+    onnxruntime-gpu=1.18.1 \
     "numpy<2"
 
 # Copy application code
